@@ -1,3 +1,5 @@
+import json
+
 from django.core.management.base import BaseCommand, CommandError
 
 import os
@@ -6,23 +8,28 @@ from corehq.apps.commtrack.util import unicode_slug
 
 
 class Command(BaseCommand):
-    args = '<app_id> <path_to_dir>'
+    args = '<path_to_dir> <app_id>'
     help = """
-        Downloads an app's forms in a more convenient directory structure for working with offline.
-        See also: upload_app_forms
+        Downloads an app's and it's forms in a more convenient directory structure for working with offline.
+        See also: upload_app
     """
 
     def handle(self, *args, **options):
         # todo: would be nice if this worked off remote servers too
         if len(args) != 2:
             raise CommandError('Usage: %s\n%s' % (self.args, self.help))
-        app_id, path = args
+        path, app_id = args
 
         # setup directory
         if not os.path.exists(path):
             os.mkdir(path)
 
         app = Application.get(app_id)
+        app_path = os.path.join(path, 'app-{}.json'.format(app.id))
+        with open(app_path, 'w') as f:
+            json.dump(app.to_json(), f)
+            print 'wrote {}'.format(app_path)
+
         for module_index, module in enumerate(app.get_modules()):
             module_dir_name = '{index} - {name}'.format(index=module_index, name=unicode_slug(module.default_name()))
             module_dir = os.path.join(path, module_dir_name)
