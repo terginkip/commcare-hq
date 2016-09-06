@@ -29,6 +29,8 @@ class SaveErrorsTest(TestCase):
         )
 
     def test_raise_error_for_missing_table(self):
+        # todo make an equivalent test for ES
+        # remember that ES automatically creates the index when adding a table
         adapter = get_indicator_adapter(self.config, raise_errors=True)
         adapter.drop_table()
 
