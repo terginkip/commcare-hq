@@ -60,21 +60,21 @@ class ConfigurableReportEsDataSource(ReportDataSource):
     # def engine_id(self):
     #     return get_engine_id(self.config)
     #
-    # @property
-    # def column_configs(self):
-    #     return self._column_configs.values()
+    @property
+    def column_configs(self):
+        return self._column_configs.values()
 
     @property
     def table_name(self):
         return get_table_name(self.domain, self.config.table_id)
-    #
+
     # @property
     # def filters(self):
     #     return filter(None, [fv.to_sql_filter() for fv in self._filter_values.values()])
-    #
-    # def set_filter_values(self, filter_values):
-    #     for filter_slug, value in filter_values.items():
-    #         self._filter_values[filter_slug] = self._filters[filter_slug].create_filter_value(value)
+
+    def set_filter_values(self, filter_values):
+        for filter_slug, value in filter_values.items():
+            self._filter_values[filter_slug] = self._filters[filter_slug].create_filter_value(value)
     #
     # def defer_filters(self, filter_slugs):
     #     self._deferred_filters.update({
@@ -113,24 +113,24 @@ class ConfigurableReportEsDataSource(ReportDataSource):
     #         except InvalidQueryColumn:
     #             pass
     #     return []
-    #
-    # @property
-    # def columns(self):
-    #     db_columns = [c for sql_conf in self.sql_column_configs for c in sql_conf.columns]
-    #     fields = {c.slug for c in db_columns}
-    #
-    #     return db_columns + [
-    #         DatabaseColumn('', SimpleColumn(deferred_filter.field))
-    #         for deferred_filter in self._deferred_filters.values()
-    #         if deferred_filter.field not in fields]
-    #
-    # @property
-    # def sql_column_configs(self):
-    #     return [col.get_sql_column_config(self.config, self.lang) for col in self.column_configs]
-    #
-    # @property
-    # def column_warnings(self):
-    #     return [w for es_conf in self.es_column_configs for w in es_conf.warnings]
+
+    @property
+    def columns(self):
+        db_columns = [c for es_conf in self.es_column_configs for c in es_conf.columns]
+        fields = {c.slug for c in db_columns}
+
+        return db_columns + [
+            DatabaseColumn('', SimpleColumn(deferred_filter.field))
+            for deferred_filter in self._deferred_filters.values()
+            if deferred_filter.field not in fields]
+
+    @property
+    def es_column_configs(self):
+        return [col.get_es_column_config(self.config, self.lang) for col in self.column_configs]
+
+    @property
+    def column_warnings(self):
+        return [w for es_conf in self.es_column_configs for w in es_conf.warnings]
 
     @memoized
     @method_decorator(catch_and_raise_exceptions)
@@ -142,11 +142,26 @@ class ConfigurableReportEsDataSource(ReportDataSource):
         if limit:
             query = query.size(limit)
 
-        return query.run().hits
+        es_ret = query.run().hits
+        ret = []
 
-    # @property
-    # def has_total_row(self):
-    #     return any(column_config.calculate_total for column_config in self.column_configs)
+        for row in es_ret:
+            r = {}
+            for report_column in self.column_configs:
+                r[report_column.column_id] = row[report_column.field]
+            ret.append(r)
+
+        for report_column in self.column_configs:
+            report_column.format_data(ret)
+
+        return ret
+
+    def get_total_records(self):
+        return HQESQuery(self.table_name).count()
+
+    @property
+    def has_total_row(self):
+        return any(column_config.calculate_total for column_config in self.column_configs)
     #
     # @method_decorator(catch_and_raise_exceptions)
     # def get_total_records(self):
