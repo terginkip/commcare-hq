@@ -68,9 +68,9 @@ class ConfigurableReportEsDataSource(ReportDataSource):
     def table_name(self):
         return get_table_name(self.domain, self.config.table_id)
 
-    # @property
-    # def filters(self):
-    #     return filter(None, [fv.to_sql_filter() for fv in self._filter_values.values()])
+    @property
+    def filters(self):
+        return filter(None, [fv.to_es_filter() for fv in self._filter_values.values()])
 
     def set_filter_values(self, filter_values):
         for filter_slug, value in filter_values.items():
@@ -141,6 +141,10 @@ class ConfigurableReportEsDataSource(ReportDataSource):
             query = query.start(start)
         if limit:
             query = query.size(limit)
+
+        for filter in self.filters:
+            if filter:
+                query = query.filter(filter)
 
         es_ret = query.run().hits
         ret = []

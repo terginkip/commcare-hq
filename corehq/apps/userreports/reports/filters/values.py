@@ -18,6 +18,7 @@ from sqlagg.filters import (
 )
 from sqlalchemy import bindparam
 
+from corehq.apps.es import filters
 from corehq.apps.reports.daterange import get_all_daterange_choices, get_daterange_start_end_dates
 from corehq.apps.reports.util import (
     get_INFilter_bindparams,
@@ -272,6 +273,14 @@ class ChoiceListFilterValue(FilterValue):
             get_INFilter_element_bindparam(self.filter.slug, i): val.value
             for i, val in enumerate(self.value)
         }
+
+    def to_es_filter(self):
+        if self.show_all:
+            return None
+        if self.is_null:
+            return filters.missing(self.filter.field)
+        terms = [v.value.lower() for v in self.value]
+        return filters.term(self.filter.field, terms)
 
 
 def dynamic_choice_list_url(domain, report, filter):
