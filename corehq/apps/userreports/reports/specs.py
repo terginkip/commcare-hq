@@ -64,10 +64,7 @@ class ReportColumn(JsonObject):
         """
         pass
 
-    def get_sql_column_config(self, data_source_config, lang):
-        raise NotImplementedError('subclasses must override this')
-
-    def get_es_column_config(self, data_source_config, lang):
+    def get_column_config(self, data_source_config, lang):
         raise NotImplementedError('subclasses must override this')
 
     def get_format_fn(self):
@@ -133,19 +130,7 @@ class FieldColumn(ReportColumn):
                     float(row[column_name]) / total
                 )
 
-    def get_sql_column_config(self, data_source_config, lang):
-        return SqlColumnConfig(columns=[
-            DatabaseColumn(
-                header=self.get_header(lang),
-                agg_column=SQLAGG_COLUMN_MAP[self.aggregation](self.field, alias=self.column_id),
-                sortable=self.sortable,
-                data_slug=self.column_id,
-                format_fn=self.get_format_fn(),
-                help_text=self.description
-            )
-        ])
-
-    def get_es_column_config(self, data_source_config, lang):
+    def get_column_config(self, data_source_config, lang):
         return SqlColumnConfig(columns=[
             DatabaseColumn(
                 header=self.get_header(lang),
@@ -176,7 +161,7 @@ class LocationColumn(ReportColumn):
             except BadValueError:
                 row[column_name] = '{} ({})'.format(row[column_name], _('Invalid Location'))
 
-    def get_sql_column_config(self, data_source_config, lang):
+    def get_column_config(self, data_source_config, lang):
         return SqlColumnConfig(columns=[
             DatabaseColumn(
                 header=self.get_header(lang),
@@ -201,7 +186,7 @@ class ExpandedColumn(ReportColumn):
         _add_column_id_if_missing(obj)
         return super(ExpandedColumn, cls).wrap(obj)
 
-    def get_sql_column_config(self, data_source_config, lang):
+    def get_column_config(self, data_source_config, lang):
         return get_expanded_column_config(data_source_config, self, lang)
 
 
@@ -213,7 +198,7 @@ class AggregateDateColumn(ReportColumn):
     field = StringProperty(required=True)
     format = StringProperty(required=False)
 
-    def get_sql_column_config(self, data_source_config, lang):
+    def get_column_config(self, data_source_config, lang):
         return SqlColumnConfig(columns=[
             AggregateColumn(
                 header=self.get_header(lang),
@@ -255,26 +240,10 @@ class PercentageColumn(ReportColumn):
         default='percent'
     )
 
-    def get_sql_column_config(self, data_source_config, lang):
+    def get_column_config(self, data_source_config, lang):
         # todo: better checks that fields are not expand
-        num_config = self.numerator.get_sql_column_config(data_source_config, lang)
-        denom_config = self.denominator.get_sql_column_config(data_source_config, lang)
-        return SqlColumnConfig(columns=[
-            AggregateColumn(
-                header=self.get_header(lang),
-                aggregate_fn=lambda n, d: {'num': n, 'denom': d},
-                format_fn=self.get_format_fn(),
-                columns=[c.view for c in num_config.columns + denom_config.columns],
-                slug=self.column_id,
-                data_slug=self.column_id,
-            )],
-            warnings=num_config.warnings + denom_config.warnings,
-        )
-
-    def get_es_column_config(self, data_source_config, lang):
-        # todo: better checks that fields are not expand
-        num_config = self.numerator.get_sql_column_config(data_source_config, lang)
-        denom_config = self.denominator.get_sql_column_config(data_source_config, lang)
+        num_config = self.numerator.get_column_config(data_source_config, lang)
+        denom_config = self.denominator.get_column_config(data_source_config, lang)
         return SqlColumnConfig(columns=[
             AggregateColumn(
                 header=self.get_header(lang),

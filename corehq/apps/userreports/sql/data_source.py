@@ -129,7 +129,7 @@ class ConfigurableReportSqlDataSource(SqlData):
 
     @property
     def sql_column_configs(self):
-        return [col.get_sql_column_config(self.config, self.lang) for col in self.column_configs]
+        return [col.get_column_config(self.config, self.lang) for col in self.column_configs]
 
     @property
     def column_warnings(self):
