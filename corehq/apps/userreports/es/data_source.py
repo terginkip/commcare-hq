@@ -135,16 +135,12 @@ class ConfigurableReportEsDataSource(ReportDataSource):
     @memoized
     @method_decorator(catch_and_raise_exceptions)
     def get_data(self, start=None, limit=None):
-        query = HQESQuery(self.table_name)
+        query = self.get_query()
 
         if start:
             query = query.start(start)
         if limit:
             query = query.size(limit)
-
-        for filter in self.filters:
-            if filter:
-                query = query.filter(filter)
 
         es_ret = query.run().hits
         ret = []
@@ -160,8 +156,18 @@ class ConfigurableReportEsDataSource(ReportDataSource):
 
         return ret
 
+    @memoized
+    def get_query(self):
+        query = HQESQuery(self.table_name)
+
+        for filter in self.filters:
+            if filter:
+                query = query.filter(filter)
+
+        return query
+
     def get_total_records(self):
-        return HQESQuery(self.table_name).count()
+        return self.get_query().count()
 
     @property
     def has_total_row(self):
