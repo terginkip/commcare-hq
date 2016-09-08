@@ -18,6 +18,7 @@ from corehq.apps.userreports.sql.columns import (
     _get_distinct_values,
     DEFAULT_MAXIMUM_EXPANSION,
 )
+from corehq.apps.userreports.tests.utils import run_with_all_ucr_backends
 from corehq.apps.userreports.util import get_indicator_adapter
 from corehq.sql_db.connections import connection_manager, UCR_ENGINE_ID
 
@@ -80,6 +81,7 @@ class TestFieldColumn(SimpleTestCase):
 
 class ChoiceListColumnDbTest(TestCase):
 
+    @run_with_all_ucr_backends
     def test_column_uniqueness_when_truncated(self):
         problem_spec = {
             "display_name": "practicing_lessons",
@@ -109,6 +111,7 @@ class ChoiceListColumnDbTest(TestCase):
             'doc_type': 'CommCareCase',
             'long_column': 'duplicate_choice_1',
         })
+        adapter.refresh_table()
         # and query it back
         q = adapter.get_query_object()
         self.assertEqual(1, q.count())
