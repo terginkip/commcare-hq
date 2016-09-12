@@ -29,6 +29,7 @@ from corehq.apps.userreports.specs import TypeProperty
 from corehq.apps.userreports.sql import get_expanded_column_config, SqlColumnConfig
 from corehq.apps.userreports.transforms.factory import TransformFactory
 from corehq.apps.userreports.util import localize
+from corehq.apps.userreports.es.columns import EsColumnConfig, EsColumn
 
 
 SQLAGG_COLUMN_MAP = {
@@ -65,6 +66,9 @@ class ReportColumn(JsonObject):
         pass
 
     def get_sql_column_config(self, data_source_config, lang):
+        raise NotImplementedError('subclasses must override this')
+
+    def get_es_column_config(self, data_source_config, lang):
         raise NotImplementedError('subclasses must override this')
 
     def get_format_fn(self):
@@ -142,6 +146,16 @@ class FieldColumn(ReportColumn):
             )
         ])
 
+    def get_es_column_config(self, data_source_config, lang):
+        return EsColumnConfig(columns=[
+            EsColumn(
+                header=self.get_header(lang),
+                data_slug=self.column_id,
+                format_fn=self.get_format_fn(),
+                help_text=self.description
+            )
+        ])
+
     def get_query_column_ids(self):
         return [self.column_id]
 
@@ -167,6 +181,16 @@ class LocationColumn(ReportColumn):
                 header=self.get_header(lang),
                 agg_column=SimpleColumn(self.field, alias=self.column_id),
                 sortable=self.sortable,
+                data_slug=self.column_id,
+                format_fn=self.get_format_fn(),
+                help_text=self.description
+            )
+        ])
+
+    def get_es_column_config(self, data_source_config, lang):
+        return EsColumnConfig(columns=[
+            EsColumn(
+                header=self.get_header(lang),
                 data_slug=self.column_id,
                 format_fn=self.get_format_fn(),
                 help_text=self.description
