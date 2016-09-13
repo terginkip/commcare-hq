@@ -18,6 +18,7 @@ FormplayerFrontend.module("Entities", function (Entities, FormplayerFrontend, Ba
             this.clearSession = response.clearSession;
             this.notification = response.notification;
             this.breadcrumbs = response.breadcrumbs;
+            this.appVersion = response.appVersion;
             this.appId = response.appId;
 
             if (response.commands) {
@@ -66,7 +67,6 @@ FormplayerFrontend.module("Entities", function (Entities, FormplayerFrontend, Ba
             var domain = user.domain;
             var language = user.language;
             var formplayerUrl = user.formplayer_url;
-            var trimmedUsername = username.substring(0, username.indexOf("@"));
 
             var menus = new Entities.MenuSelectCollection({
 
@@ -76,7 +76,7 @@ FormplayerFrontend.module("Entities", function (Entities, FormplayerFrontend, Ba
                     var collection = this;
 
                     options.data = JSON.stringify({
-                        "username": trimmedUsername,
+                        "username": user.username,
                         "domain": domain,
                         "app_id": collection.appId,
                         "locale": language,
