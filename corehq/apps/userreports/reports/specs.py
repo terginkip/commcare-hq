@@ -213,6 +213,10 @@ class ExpandedColumn(ReportColumn):
     def get_sql_column_config(self, data_source_config, lang):
         return get_expanded_column_config(data_source_config, self, lang)
 
+    def get_es_column_config(self, data_source_config, lang):
+        from corehq.apps.userreports.es.columns import get_expanded_es_column_config
+        return get_expanded_es_column_config(data_source_config, self, lang)
+
 
 class AggregateDateColumn(ReportColumn):
     """
