@@ -8,6 +8,8 @@ from dimagi.utils.decorators.memoized import memoized
 from pillowtop.es_utils import INDEX_STANDARD_SETTINGS
 
 
+# todo have different settings for rebuilding and indexing esp. refresh_interval
+# These settings tell ES to not tokenize strings
 UCR_INDEX_SETTINGS = {
     "settings": INDEX_STANDARD_SETTINGS,
     "mappings": {
