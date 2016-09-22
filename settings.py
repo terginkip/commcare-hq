@@ -389,8 +389,11 @@ HQ_APPS = (
     'custom.common',
 
     'custom.icds_reports',
-    'custom.enikshay.integrations.ninetyninedots',
     'custom.pnlppgi',
+)
+
+ENIKSHAY_APPS = (
+    'custom.enikshay.integrations.ninetyninedots',
     'custom.enikshay.nikshay_datamigration',
 )
 
@@ -431,7 +434,7 @@ APPS_TO_EXCLUDE_FROM_TESTS = (
     'dimagi.utils',
 )
 
-INSTALLED_APPS = DEFAULT_APPS + HQ_APPS
+INSTALLED_APPS = DEFAULT_APPS + HQ_APPS + ENIKSHAY_APPS
 
 
 # after login, django redirects to this URL
