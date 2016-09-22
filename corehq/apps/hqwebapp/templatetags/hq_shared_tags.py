@@ -532,6 +532,7 @@ def url_replace(context, field, value):
     params[field] = value
     return params.urlencode()
 
+
 @register.filter
 def view_pdb(element):
     import pdb; pdb.set_trace()
