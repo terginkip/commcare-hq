@@ -1788,7 +1788,7 @@
         "type": "boolean_expression",
         "operator": "eq",
         "expression": {
-          "type": "icds_ccs_alive_in_month"
+          "type": "icds_alive_in_month"
         },
         "property_value": "yes"
       },

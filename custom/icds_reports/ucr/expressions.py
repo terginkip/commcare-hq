@@ -11,9 +11,12 @@ CUSTOM_UCR_EXPRESSIONS = [
     ('icds_parent_parent_id', 'custom.icds_reports.ucr.expressions.parent_parent_id'),
     ('icds_open_in_month', 'custom.icds_reports.ucr.expressions.open_in_month'),
     ('icds_get_case_forms_by_date', 'custom.icds_reports.ucr.expressions.get_case_forms_by_date'),
-    ('icds_ccs_alive_in_month', 'custom.icds_reports.ucr.expressions.ccs_alive_in_month'),
+    ('icds_alive_in_month', 'custom.icds_reports.ucr.expressions.icds_alive_in_month'),
     ('icds_ccs_pregnant', 'custom.icds_reports.ucr.expressions.ccs_pregnant'),
     ('icds_ccs_lactating', 'custom.icds_reports.ucr.expressions.ccs_lactating'),
+    ('icds_child_age_in_days', 'custom.icds_reports.ucr.expressions.child_age_in_days'),
+    ('icds_child_age_in_months', 'custom.icds_reports.ucr.expressions.child_age_in_months'),
+    ('icds_child_valid_in_month', 'custom.icds_reports.ucr.expressions.child_valid_in_month'),
 ]
 
 
@@ -46,7 +49,7 @@ class GetCaseFormsByDateSpec(JsonObject):
     form_filter = DefaultProperty(required=False)
 
 
-class CCSAliveInMonthSpec(JsonObject):
+class AliveInMonthSpec(JsonObject):
     type = TypeProperty('icds_ccs_alive_in_month')
 
 
@@ -56,6 +59,18 @@ class CCSPregnantSpec(JsonObject):
 
 class CCSLactatingSpec(JsonObject):
     type = TypeProperty('icds_ccs_lactating')
+
+
+class ChildAgeInDaysSpec(JsonObject):
+    type = TypeProperty('icds_child_age_in_days')
+
+
+class ChildAgeInMonthsSpec(JsonObject):
+    type = TypeProperty('icds_child_age_in_months')
+
+
+class ChildValidInMonthSpec(JsonObject):
+    type = TypeProperty('icds_child_valid_in_month')
 
 
 def month_start(spec, context):
@@ -388,8 +403,8 @@ def get_case_forms_by_date(spec, context):
     return ExpressionFactory.from_spec(spec, context)
 
 
-def ccs_alive_in_month(spec, context):
-    CCSAliveInMonthSpec.wrap(spec)
+def alive_in_month(spec, context):
+    AliveInMonthSpec.wrap(spec)
     spec = {
         'type': 'conditional',
         'test': {
@@ -619,5 +634,80 @@ def ccs_lactating(spec, context):
             'type': 'constant',
             'constant': 'no'
         }
+    }
+    return ExpressionFactory.from_spec(spec, context)
+
+
+def child_age_in_days(spec, context):
+    ChildAgeInDaysSpec.wrap(spec)
+    spec = {
+        'type': 'diff_days',
+        'from_date_expression': {
+            'type': 'related_doc',
+            'related_doc_type': 'CommCareCase',
+            'doc_id_expression': {
+                'type': 'icds_parent_id'
+            },
+            'value_expression': {
+                'datatype': 'date',
+                'property_name': 'dob',
+                'type': 'property_name'
+            }
+        },
+        'to_date_expression': {
+            'type': 'icds_month_end'
+        }
+    }
+    return ExpressionFactory.from_spec(spec, context)
+
+
+def child_age_in_months(spec, context):
+    ChildAgeInMonthsSpec.wrap(spec)
+    spec = {
+        'type': 'evaluator',
+        'statement': 'age_in_days / 30.4',
+        'context_variables': {
+            'age_in_days': {
+                'type': 'icds_child_age_in_days'
+            }
+        }
+    }
+    return ExpressionFactory.from_spec(spec, context)
+
+
+def child_valid_in_month(spec, context):
+    ChildValidInMonthSpec.wrap(spec)
+    spec = {
+        "type": "and",
+        "filters": [
+            {
+                "type": "icds_alive_in_month"
+            },
+            {
+                "type": "icds_open_in_month"
+            },
+            {
+                "type": "not",
+                "filter": {
+                    "operator": "in",
+                    "type": "boolean_expression",
+                    "expression": {
+                        "type": "icds_child_age_in_months"
+                    },
+                    "property_value": [
+                        "",
+                        null
+                    ]
+                }
+            },
+            {
+                "type": "boolean_expression",
+                "operator": "lte",
+                "property_value": 72,
+                "expression": {
+                    "type": "icds_child_age_in_months"
+                }
+            }
+        ]
     }
     return ExpressionFactory.from_spec(spec, context)
