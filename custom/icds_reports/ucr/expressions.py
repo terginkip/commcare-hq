@@ -11,12 +11,16 @@ CUSTOM_UCR_EXPRESSIONS = [
     ('icds_parent_parent_id', 'custom.icds_reports.ucr.expressions.parent_parent_id'),
     ('icds_open_in_month', 'custom.icds_reports.ucr.expressions.open_in_month'),
     ('icds_get_case_forms_by_date', 'custom.icds_reports.ucr.expressions.get_case_forms_by_date'),
+    ('icds_get_all_forms_repeats', 'custom.icds_reports.ucr.expressions.get_all_forms_repeats'),
+    ('icds_get_last_form_repeats', 'custom.icds_reports.ucr.expressions.get_last_form_repeats'),
     ('icds_alive_in_month', 'custom.icds_reports.ucr.expressions.icds_alive_in_month'),
     ('icds_ccs_pregnant', 'custom.icds_reports.ucr.expressions.ccs_pregnant'),
     ('icds_ccs_lactating', 'custom.icds_reports.ucr.expressions.ccs_lactating'),
     ('icds_child_age_in_days', 'custom.icds_reports.ucr.expressions.child_age_in_days'),
     ('icds_child_age_in_months', 'custom.icds_reports.ucr.expressions.child_age_in_months'),
     ('icds_child_valid_in_month', 'custom.icds_reports.ucr.expressions.child_valid_in_month'),
+    ('icds_child_get_latest_ebf_repeat', 'custom.icds_reports.ucr.expressions.child_get_latest_ebf_repeat'),
+    ('icds_child_get_latest_cf_repeat', 'custom.icds_reports.ucr.expressions.child_get_latest_cf_repeat'),
 ]
 
 
@@ -49,6 +53,20 @@ class GetCaseFormsByDateSpec(JsonObject):
     form_filter = DefaultProperty(required=False)
 
 
+class GetAllFormsRepeatsSpec(JsonObject):
+    type = TypeProperty('icds_get_all_forms_repeats')
+    forms_expression = DefaultProperty(required=True)
+    repeat_path = ListProperty(required=True)
+    repeat_filter = DefaultProperty(required=False)
+
+
+class GetLastFormRepeatsSpec(JsonObject):
+    type = TypeProperty('icds_get_last_form_repeats')
+    forms_expression = DefaultProperty(required=True)
+    repeat_path = ListProperty(required=True)
+    repeat_filter = DefaultProperty(required=False)
+
+
 class AliveInMonthSpec(JsonObject):
     type = TypeProperty('icds_ccs_alive_in_month')
 
@@ -71,6 +89,14 @@ class ChildAgeInMonthsSpec(JsonObject):
 
 class ChildValidInMonthSpec(JsonObject):
     type = TypeProperty('icds_child_valid_in_month')
+
+
+class ChildGetLatestEBFRepeatSpec(JsonObject):
+    type = TypeProperty('icds_child_get_latest_ebf_repeat')
+
+
+class ChildGetLatestCFRepeatSpec(JsonObject):
+    type = TypeProperty('icds_child_get_latest_cf_repeat')
 
 
 def month_start(spec, context):
@@ -403,6 +429,78 @@ def get_case_forms_by_date(spec, context):
     return ExpressionFactory.from_spec(spec, context)
 
 
+def get_all_forms_repeats(spec, context):
+    GetAllFormsRepeatsSpec.wrap(spec)
+    if spec['repeat_filter'] is not None:
+        spec = {
+            'type': 'filter_items',
+            'filter_expression': spec['repeat_filter'],
+            'items_expression': {
+                'type': 'flatten',
+                'items_expression': {
+                    'type': 'map_items',
+                    'map_expression': {
+                        'type': 'property_path',
+                        'datatype': 'array',
+                        'property_path': spec['repeat_path']
+                    },
+                    'items_expression': spec['forms_expression']
+                }
+            }
+        }
+    else:
+        spec = {
+            'type': 'flatten',
+            'items_expression': {
+                'type': 'map_items',
+                'map_expression': {
+                    'type': 'property_path',
+                    'datatype': 'array',
+                    'property_path': spec['repeat_path']
+                },
+                'items_expression': spec['forms_expression']
+            }
+        }
+    return ExpressionFactory.from_spec(spec, context)
+
+
+def get_last_form_repeats(spec, context):
+    GetLastFormRepeatsSpec.wrap(spec)
+    if spec['repeat_filter'] is not None:
+        spec = {
+            'type': 'filter_items',
+            'filter_expression': spec['repeat_filter'],
+            'items_expression': {
+                'type': 'nested',
+                'argument_expression': {
+                    'type': 'reduce_items',
+                    'aggregation_fn': 'last_item',
+                    'items_expression': spec['forms_expression']
+                },
+                'value_expression': {
+                    'type': 'property_path',
+                    'datatype': 'array',
+                    'property_path': spec['repeat_path'],
+                }
+            }
+        }
+    else:
+        spec = {
+            'type': 'nested',
+            'argument_expression': {
+                'type': 'reduce_items',
+                'aggregation_fn': 'last_item',
+                'items_expression': spec['forms_expression']
+            },
+            'value_expression': {
+                'type': 'property_path',
+                'datatype': 'array',
+                'property_path': spec['repeat_path'],
+            }
+        }
+    return ExpressionFactory.from_spec(spec, context)
+
+
 def alive_in_month(spec, context):
     AliveInMonthSpec.wrap(spec)
     spec = {
@@ -711,3 +809,102 @@ def child_valid_in_month(spec, context):
         ]
     }
     return ExpressionFactory.from_spec(spec, context)
+
+
+def child_get_latest_ebf_repeat(spec, context):
+    ChildGetLatestEBFRepeatSpec.wrap(spec)
+    spec = {
+        'type': 'reduce_items',
+        'aggregation_fn': 'last_item',
+        'items_expression': {
+            'type': 'icds_get_last_form_repeats',
+            'forms_expression': {
+                'type': 'icds_get_case_forms_by_date',
+                'case_id_expression': {
+                    'type': 'root_doc',
+                    'expression': {
+                        'type': 'property_name',
+                        'property_name': '_id'
+                    }
+                },
+                'xmlns': [
+                    'http://openrosa.org/formdesigner/D4A7ABD2-A7B8-431B-A88B-38245173B0AE',
+                    'http://openrosa.org/formdesigner/89097FB1-6C08-48BA-95B2-67BCF0C5091D'
+                ],
+                'end_date': {
+                    'type': 'icds_month_end'
+                }
+            },
+            'repeat_path': [
+                'form',
+                'child',
+                'item'
+            ],
+            'repeat_filter': {
+                'type': 'boolean_expression',
+                'operator': 'eq',
+                'expression': {
+                    'type': 'property_name',
+                    'property_name': '@id'
+                },
+                'property_value': {
+                    'type': 'root_doc',
+                    'expression': {
+                        'type': 'property_name',
+                        'property_name': '_id'
+                    }
+                }
+            }
+        }
+    }
+    return ExpressionFactory.from_spec(spec, context)
+
+
+def child_get_latest_cf_repeat(spec, context):
+    ChildGetLatestCFRepeatSpec.wrap(spec)
+    spec = {
+        'type': 'reduce_items',
+        'aggregation_fn': 'last_item',
+        'items_expression': {
+            'type': 'icds_get_last_form_repeats',
+            'forms_expression': {
+                'type': 'icds_get_case_forms_by_date',
+                'case_id_expression': {
+                    'type': 'root_doc',
+                    'expression': {
+                        'type': 'property_name',
+                        'property_name': '_id'
+                    }
+                },
+                'xmlns': [
+                    'http://openrosa.org/formdesigner/792DAF2B-E117-424A-A673-34E1513ABD88'
+                ],
+                'end_date': {
+                    'type': 'icds_month_end'
+                }
+            },
+            'repeat_path': [
+                'form',
+                'child',
+                'item'
+            ],
+            'repeat_filter': {
+                'type': 'boolean_expression',
+                'operator': 'eq',
+                'expression': {
+                    'type': 'property_name',
+                    'property_name': '@id'
+                },
+                'property_value': {
+                    'type': 'root_doc',
+                    'expression': {
+                        'type': 'property_name',
+                        'property_name': '_id'
+                    }
+                }
+            }
+        }
+    }
+    return ExpressionFactory.from_spec(spec, context)
+
+
