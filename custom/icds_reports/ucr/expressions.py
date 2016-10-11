@@ -13,7 +13,7 @@ CUSTOM_UCR_EXPRESSIONS = [
     ('icds_get_case_forms_by_date', 'custom.icds_reports.ucr.expressions.get_case_forms_by_date'),
     ('icds_get_all_forms_repeats', 'custom.icds_reports.ucr.expressions.get_all_forms_repeats'),
     ('icds_get_last_form_repeats', 'custom.icds_reports.ucr.expressions.get_last_form_repeats'),
-    ('icds_alive_in_month', 'custom.icds_reports.ucr.expressions.icds_alive_in_month'),
+    ('icds_alive_in_month', 'custom.icds_reports.ucr.expressions.alive_in_month'),
     ('icds_ccs_pregnant', 'custom.icds_reports.ucr.expressions.ccs_pregnant'),
     ('icds_ccs_lactating', 'custom.icds_reports.ucr.expressions.ccs_lactating'),
     ('icds_child_age_in_days', 'custom.icds_reports.ucr.expressions.child_age_in_days'),
@@ -66,7 +66,7 @@ class GetLastFormRepeatsSpec(JsonObject):
 
 
 class AliveInMonthSpec(JsonObject):
-    type = TypeProperty('icds_ccs_alive_in_month')
+    type = TypeProperty('icds_alive_in_month')
 
 
 class CCSPregnantSpec(JsonObject):
@@ -586,7 +586,7 @@ def ccs_pregnant(spec, context):
                     'type': 'boolean_expression',
                     'operator': 'eq',
                     'expression': {
-                        'type': 'icds_ccs_alive_in_month'
+                        'type': 'icds_alive_in_month'
                     },
                     'property_value': 'yes'
                 },
@@ -663,7 +663,7 @@ def ccs_lactating(spec, context):
                     'type': 'boolean_expression',
                     'operator': 'eq',
                     'expression': {
-                        'type': 'icds_ccs_alive_in_month'
+                        'type': 'icds_alive_in_month'
                     },
                     'property_value': 'yes'
                 },
@@ -811,5 +811,3 @@ def child_valid_in_month(spec, context):
         ]
     }
     return ExpressionFactory.from_spec(spec, context)
-
-
