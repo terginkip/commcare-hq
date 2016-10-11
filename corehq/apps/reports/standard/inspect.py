@@ -3,6 +3,7 @@ from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_noop, get_language
 
 from corehq.apps.hqcase.utils import SYSTEM_FORM_XMLNS
+from corehq.apps.locations.permissions import location_safe_report
 from corehq.apps.reports import util
 from corehq.apps.reports.filters.users import ExpandedMobileWorkerFilter
 
@@ -40,6 +41,7 @@ class ProjectInspectionReport(ProjectInspectionReportParamsMixin, GenericTabular
         raise NotImplementedError
 
 
+@location_safe_report
 class SubmitHistoryMixin(ElasticProjectInspectionReport,
                          ProjectReportParametersMixin,
                          CompletionOrSubmissionTimeMixin, MultiFormDrilldownMixin,
