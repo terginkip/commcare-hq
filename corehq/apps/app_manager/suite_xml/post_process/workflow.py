@@ -384,9 +384,10 @@ class CaseListFormWorkflow(object):
                     target_dm = self.get_target_dm(target_form_dm, source_meta.case_type, module)
                     if target_dm:
                         used.add(source_meta)
-                        meta = WorkflowDatumMeta.from_session_datum(source_meta)
+                        meta = WorkflowDatumMeta.from_session_datum(source_meta)  # clone meta
                         frame_case_created.add_child(meta.to_stack_datum(datum_id=target_dm.id))
-                        frame_case_not_created.add_child(meta.to_stack_datum(datum_id=target_dm.id))
+                        if not meta.is_new_case_id:
+                            frame_case_not_created.add_child(meta.to_stack_datum(datum_id=target_dm.id))
                 else:
                     source_case_type = self.get_case_type_created_by_form(form, target_module)
                     target_dm = self.get_target_dm(target_form_dm, source_case_type, module)
@@ -573,7 +574,8 @@ class WorkflowDatumMeta(object):
         self._case_type = case_type
 
     def to_stack_datum(self, datum_id=None, source_id=None):
-        value = session_var(source_id or self.id) if self.requires_selection else self.function
+        use_session_val = self.requires_selection or self.is_new_case_id
+        value = session_var(source_id or self.id) if use_session_val else self.function
         return StackDatum(id=datum_id or self.id, value=value)
 
     def __lt__(self, other):
