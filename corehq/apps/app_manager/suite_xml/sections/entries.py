@@ -326,36 +326,36 @@ class EntriesHelper(object):
     def get_datum_meta_module(self, module, use_filter=False):
         datums = []
         datum_module = module.source_module if module.module_type == 'shadow' else module
-        datums_meta = get_select_chain_meta(self.app, datum_module)
-        for i, datum in enumerate(datums_meta):
-            # get the session var for the previous datum if there is one
-            parent_id = datums_meta[i - 1]['session_var'] if i >= 1 else ''
+        select_chain_meta = get_select_chain_meta(self.app, datum_module)
+        for i, select_chain_node in enumerate(select_chain_meta):
+            # get the session var for the previous select_chain_node if there is one
+            parent_id = select_chain_meta[i - 1]['session_var'] if i >= 1 else ''
             if parent_id:
                 parent_filter = EntriesHelper.get_parent_filter(
-                    datum['module'].parent_select.relationship, parent_id
+                    select_chain_node['module'].parent_select.relationship, parent_id
                 )
             else:
                 parent_filter = ''
 
-            detail_module = module if module.module_type == 'shadow' else datum['module']
-            detail_persistent = self.get_detail_persistent_attr(datum['module'], detail_module, "case_short")
-            detail_inline = self.get_detail_inline_attr(datum['module'], detail_module, "case_short")
+            detail_module = module if module.module_type == 'shadow' else select_chain_node['module']
+            detail_persistent = self.get_detail_persistent_attr(select_chain_node['module'], detail_module, "case_short")
+            detail_inline = self.get_detail_inline_attr(select_chain_node['module'], detail_module, "case_short")
 
             fixture_select_filter = ''
-            if datum['module'].fixture_select.active:
+            if select_chain_node['module'].fixture_select.active:
                 datums.append(FormDatumMeta(
                     datum=SessionDatum(
-                        id=id_strings.fixture_session_var(datum['module']),
-                        nodeset=ItemListFixtureXpath(datum['module'].fixture_select.fixture_type).instance(),
-                        value=datum['module'].fixture_select.variable_column,
+                        id=id_strings.fixture_session_var(select_chain_node['module']),
+                        nodeset=ItemListFixtureXpath(select_chain_node['module'].fixture_select.fixture_type).instance(),
+                        value=select_chain_node['module'].fixture_select.variable_column,
                         detail_select=id_strings.fixture_detail(detail_module)
                     ),
                     case_type=None,
                     requires_selection=True,
                     action='fixture_select'
                 ))
-                filter_xpath_template = datum['module'].fixture_select.xpath
-                fixture_value = session_var(id_strings.fixture_session_var(datum['module']))
+                filter_xpath_template = select_chain_node['module'].fixture_select.xpath
+                fixture_value = session_var(id_strings.fixture_session_var(select_chain_node['module']))
                 fixture_select_filter = "[{}]".format(
                     filter_xpath_template.replace('$fixture_value', fixture_value)
                 )
@@ -364,20 +364,20 @@ class EntriesHelper(object):
 
             datums.append(FormDatumMeta(
                 datum=SessionDatum(
-                    id=datum['session_var'],
-                    nodeset=(EntriesHelper.get_nodeset_xpath(datum['case_type'], filter_xpath=filter_xpath)
+                    id=select_chain_node['session_var'],
+                    nodeset=(EntriesHelper.get_nodeset_xpath(select_chain_node['case_type'], filter_xpath=filter_xpath)
                              + parent_filter + fixture_select_filter),
                     value="./@case_id",
                     detail_select=self.details_helper.get_detail_id_safe(detail_module, 'case_short'),
                     detail_confirm=(
                         self.details_helper.get_detail_id_safe(detail_module, 'case_long')
-                        if datum['index'] == 0 and not detail_inline else None
+                        if select_chain_node['index'] == 0 and not detail_inline else None
                     ),
                     detail_persistent=detail_persistent,
                     detail_inline=detail_inline,
-                    autoselect=datum['module'].auto_select_case,
+                    autoselect=select_chain_node['module'].auto_select_case,
                 ),
-                case_type=datum['case_type'],
+                case_type=select_chain_node['case_type'],
                 requires_selection=True,
                 action='update_case'
             ))
