@@ -168,6 +168,7 @@ class WorkflowHelper(PostProcessor):
                 form_datum = form_datums_by_id.get(entry_datum.id)
                 if form_datum:
                     entry_datum.case_type = form_datum.case_type
+                    entry_datum.from_parent_module = form_datum.from_parent
 
 
 class EndOfFormNavigationWorkflow(object):
@@ -286,6 +287,8 @@ class EndOfFormNavigationWorkflow(object):
         """
         candidate = None
         for source_datum in source_datums:
+            if source_datum.from_parent_module:
+                continue
             if target_datum.id == source_datum.id:
                 if source_datum.case_type and source_datum.case_type == target_datum.case_type:
                     # same ID, same case type
@@ -538,6 +541,8 @@ class WorkflowDatumMeta(object):
         self.nodeset = nodeset
         self.function = function
         self._case_type = None
+        self.from_parent_module = False
+
 
     @classmethod
     def from_session_datum(cls, session_datum):
@@ -574,7 +579,9 @@ class WorkflowDatumMeta(object):
         self._case_type = case_type
 
     def to_stack_datum(self, datum_id=None, source_id=None):
-        use_session_val = self.requires_selection or self.is_new_case_id
+        # SK: hard to figure out how to know if should use session val vs function
+        # need session val if it's in session
+        use_session_val = not self.from_parent_module and (self.requires_selection or self.is_new_case_id)
         value = session_var(source_id or self.id) if use_session_val else self.function
         return StackDatum(id=datum_id or self.id, value=value)
 
